@@ -23,33 +23,6 @@ import {
   ComposedChart,
   Line
 } from 'recharts';
-import { TooltipProps } from 'recharts';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip as ChartTooltip,
-  Legend as ChartLegend,
-  TimeScale,
-  TimeSeriesScale
-} from 'chart.js';
-import 'chartjs-adapter-date-fns';
-import { ChartData, ChartOptions as ChartJSOptions } from 'chart.js';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  ChartTooltip,
-  ChartLegend,
-  TimeScale,
-  TimeSeriesScale
-);
 
 interface Region {
   id: string;
@@ -69,15 +42,6 @@ interface MetricData {
   medianPrice: number | null;
   priceGap: number | null;
   priceTrend: number | null;
-}
-
-interface ValueType {
-  value: number;
-  name: string;
-}
-
-interface NameType {
-  dataKey: string;
 }
 
 const AffordabilityDetail: React.FC = () => {
@@ -512,69 +476,6 @@ const AffordabilityDetail: React.FC = () => {
         </Box>
       </Box>
     );
-  };
-
-  const chartOptions: ChartJSOptions<'line'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-        align: 'center',
-        labels: {
-          padding: 20
-        }
-      },
-      title: {
-        display: true,
-        text: '可负担性趋势分析',
-        padding: {
-          top: 10,
-          bottom: 30
-        }
-      }
-    },
-    scales: {
-      x: {
-        type: 'time',
-        time: {
-          unit: 'month',
-          displayFormats: {
-            month: 'yyyy-MM'
-          }
-        },
-        title: {
-          display: true,
-          text: '月份',
-          padding: {
-            top: 20
-          }
-        },
-        ticks: {
-          maxRotation: 45,
-          minRotation: 45,
-          padding: 10
-        }
-      },
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: '可负担性指数',
-          padding: {
-            bottom: 20
-          }
-        }
-      }
-    },
-    layout: {
-      padding: {
-        left: 10,
-        right: 10,
-        top: 20,
-        bottom: 50  // 增加底部边距
-      }
-    }
   };
 
   if (loading) {

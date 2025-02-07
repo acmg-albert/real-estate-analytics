@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 import {
@@ -9,7 +9,8 @@ import {
   Paper,
   Autocomplete,
   TextField,
-  Button
+  Button,
+  Slider
 } from '@mui/material';
 import {
   XAxis,
