@@ -22,6 +22,7 @@ allowed_origins = [
     "http://localhost:5174",
     "http://localhost:5175",
     "http://localhost:5176",
+    "https://real-estate-analytics.vercel.app",  # Vercel部署
     os.getenv("FRONTEND_URL", ""),  # 生产环境前端URL
 ]
 
