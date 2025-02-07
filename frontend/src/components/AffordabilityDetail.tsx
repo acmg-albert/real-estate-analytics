@@ -72,13 +72,6 @@ const AffordabilityDetail: React.FC = () => {
     return data[index]?.month || '';
   }, [data]);
 
-  // 根据日期获取滑块值
-  const getSliderValueFromDate = useCallback((date: string) => {
-    if (!data.length) return 0;
-    const index = data.findIndex(d => d.month === date);
-    return index >= 0 ? (index / (data.length - 1)) * 100 : 0;
-  }, [data]);
-
   // 处理滑块变化
   const handleTimeRangeChange = (_event: Event, newValue: number | number[]) => {
     setTimeRange(newValue as [number, number]);
