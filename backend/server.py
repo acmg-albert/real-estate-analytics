@@ -4,7 +4,7 @@ import httpx
 import asyncio
 import pandas as pd
 from io import StringIO
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
 import numpy as np
 from fastapi import HTTPException
@@ -16,21 +16,15 @@ load_dotenv()
 
 app = FastAPI()
 
-# 配置CORS
-allowed_origins = [
-    "http://localhost:5173",  # 本地开发
-    "http://localhost:5174",
-    "http://localhost:5175",
-    "http://localhost:5176",
-    "https://real-estate-analytics.vercel.app",  # Vercel部署
-    os.getenv("FRONTEND_URL", ""),  # 生产环境前端URL
-]
-
+# 添加CORS中间件
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin for origin in allowed_origins if origin],  # 移除空字符串
+    allow_origins=[
+        "https://real-estate-analytics.vercel.app",  # Vercel前端地址
+        "http://localhost:5173",  # 本地开发地址
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -70,15 +64,19 @@ REGION_COLUMNS = {
 @app.get("/api/zillow-data")
 async def get_zillow_data():
     async with httpx.AsyncClient() as client:
-        responses = await asyncio.gather(
-            client.get(ZILLOW_URLS['allHomes']),
-            client.get(ZILLOW_URLS['sfrOnly'])
-        )
-        
-        return {
-            "allHomes": responses[0].text,
-            "sfrOnly": responses[1].text
-        }
+        try:
+            responses = await asyncio.gather(
+                client.get(ZILLOW_URLS['allHomes']),
+                client.get(ZILLOW_URLS['sfrOnly'])
+            )
+            
+            return {
+                "allHomes": responses[0].text,
+                "sfrOnly": responses[1].text
+            }
+        except Exception as e:
+            print(f"Error fetching Zillow data: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 async def fetch_realtor_data(granularity: str) -> pd.DataFrame:
     """获取Realtor.com数据"""
@@ -239,7 +237,7 @@ def calculate_metrics(df: pd.DataFrame, region_col: str) -> List[Dict]:
                             'region': region,
                             'currentActive': round(current_active, 2),
                             'historicalActive': round(hist_active_mean, 2),
-                            'activeChange': round(active_change, 2),
+                            'changePercentage': round(active_change, 2),
                             'currentPending': round(current_pending, 2),
                             'historicalPending': round(hist_pending_mean, 2),
                             'pendingChange': round(pending_change, 2),
@@ -248,34 +246,58 @@ def calculate_metrics(df: pd.DataFrame, region_col: str) -> List[Dict]:
                             'ratioChange': round(ratio_change, 2)
                         })
                     else:
-                        print(f"  警告: 数据计算结果包含无效值")
+                        print(f"  跳过地区 {region} - 存在无效计算结果")
                 else:
-                    print(f"  警告: 数据点不足或当前值为0")
+                    print(f"  跳过地区 {region} - 数据不足")
             except Exception as e:
-                print(f"Error processing region {region}: {str(e)}")
+                print(f"  处理地区 {region} 时出错: {str(e)}")
                 continue
-                
-        print(f"总计处理完成的地区数量: {len(results)}")
+        
+        print(f"总共处理了 {len(results)} 个地区")
         return results
     except Exception as e:
-        print(f"Error in calculate_metrics: {str(e)}")
+        print(f"计算指标时出错: {str(e)}")
         return []
 
-def get_top_bottom(data_list, key='changePercentage', reverse=True):
-    """获取排名前后的市场"""
-    # 确保数据列表不为空
-    if not data_list:
-        return [], []
+def get_top_bottom(data: List[Dict], metric: str, n: int = 10) -> Tuple[List[Dict], List[Dict]]:
+    """获取指定指标的前N和后N个地区"""
+    try:
+        # 根据指标名称获取相应的数据
+        if metric == 'active':
+            sorted_data = sorted(data, key=lambda x: x['changePercentage'], reverse=True)
+            top = [{'region': item['region'], 
+                   'current': item['currentActive'],
+                   'prePandemic': item['historicalActive'],
+                   'changePercentage': item['changePercentage']} for item in sorted_data[:n]]
+            bottom = [{'region': item['region'], 
+                      'current': item['currentActive'],
+                      'prePandemic': item['historicalActive'],
+                      'changePercentage': item['changePercentage']} for item in sorted_data[-n:]]
+        elif metric == 'pending':
+            sorted_data = sorted(data, key=lambda x: x['pendingChange'], reverse=True)
+            top = [{'region': item['region'], 
+                   'current': item['currentPending'],
+                   'prePandemic': item['historicalPending'],
+                   'changePercentage': item['pendingChange']} for item in sorted_data[:n]]
+            bottom = [{'region': item['region'], 
+                      'current': item['currentPending'],
+                      'prePandemic': item['historicalPending'],
+                      'changePercentage': item['pendingChange']} for item in sorted_data[-n:]]
+        else:  # ratio
+            sorted_data = sorted(data, key=lambda x: x['ratioChange'], reverse=True)
+            top = [{'region': item['region'], 
+                   'current': item['currentRatio'],
+                   'prePandemic': item['historicalRatio'],
+                   'changePercentage': item['ratioChange']} for item in sorted_data[:n]]
+            bottom = [{'region': item['region'], 
+                      'current': item['currentRatio'],
+                      'prePandemic': item['historicalRatio'],
+                      'changePercentage': item['ratioChange']} for item in sorted_data[-n:]]
         
-    # 按指定键排序
-    sorted_data = sorted(data_list, key=lambda x: x[key], reverse=reverse)
-    
-    # 获取前10和后10
-    top = sorted_data[:10]
-    bottom = sorted_data[-10:] if len(sorted_data) >= 10 else []
-    bottom = bottom[::-1]  # 反转底部列表，使其从小到大排序
-    
-    return top, bottom
+        return top, bottom
+    except Exception as e:
+        print(f"获取排名时出错: {str(e)}")
+        return [], []
 
 @app.get("/api/market-balance")
 async def get_market_balance():
@@ -303,51 +325,15 @@ async def get_market_balance():
             
         print(f"计算完成，开始处理活跃列表变化...")
         # 处理活跃列表变化
-        active_top, active_bottom = get_top_bottom(results, 'changePercentage')
-        active_top = [{
-            'region': item['region'],
-            'current': float(item['current']),
-            'prePandemic': float(item['prePandemic']),
-            'changePercentage': float(item['changePercentage'])
-        } for item in active_top]
-        active_bottom = [{
-            'region': item['region'],
-            'current': float(item['current']),
-            'prePandemic': float(item['prePandemic']),
-            'changePercentage': float(item['changePercentage'])
-        } for item in active_bottom]
+        active_top, active_bottom = get_top_bottom(results, 'active')
         
         print(f"处理待定列表变化...")
         # 处理待定列表变化
-        pending_top, pending_bottom = get_top_bottom(results, 'changePercentage')
-        pending_top = [{
-            'region': item['region'],
-            'current': float(item['current']),
-            'prePandemic': float(item['prePandemic']),
-            'changePercentage': float(item['changePercentage'])
-        } for item in pending_top]
-        pending_bottom = [{
-            'region': item['region'],
-            'current': float(item['current']),
-            'prePandemic': float(item['prePandemic']),
-            'changePercentage': float(item['changePercentage'])
-        } for item in pending_bottom]
+        pending_top, pending_bottom = get_top_bottom(results, 'pending')
         
         print(f"处理比率变化...")
         # 处理比率变化
-        ratio_top, ratio_bottom = get_top_bottom(results, 'changePercentage')
-        ratio_top = [{
-            'region': item['region'],
-            'current': float(item['current']),
-            'prePandemic': float(item['prePandemic']),
-            'changePercentage': float(item['changePercentage'])
-        } for item in ratio_top]
-        ratio_bottom = [{
-            'region': item['region'],
-            'current': float(item['current']),
-            'prePandemic': float(item['prePandemic']),
-            'changePercentage': float(item['changePercentage'])
-        } for item in ratio_bottom]
+        ratio_top, ratio_bottom = get_top_bottom(results, 'ratio')
         
         response_data = {
             "active": {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Paper, FormControl, Slider, Autocomplete, TextField } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { API_URL } from '../config';
 
 interface PriceData {
   date: string;
@@ -141,7 +142,7 @@ const MedianPriceChart: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/zillow-data');
+        const response = await fetch(`${API_URL}/api/zillow-data`);
         const data = await response.json();
 
         if (!data.allHomes || !data.sfrOnly) {
