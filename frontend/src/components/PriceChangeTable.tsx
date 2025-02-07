@@ -10,6 +10,7 @@ import {
   Box,
   Tooltip,
 } from '@mui/material';
+import { API_URL } from '../config';
 
 interface PriceChangeTableProps {
   type: 'increase' | 'decrease';
@@ -28,7 +29,7 @@ const PriceChangeTable: React.FC<PriceChangeTableProps> = ({ type }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/zillow-data');
+        const response = await fetch(`${API_URL}/api/zillow-data`);
         const data = await response.json();
         
         if (!data.allHomes) {
