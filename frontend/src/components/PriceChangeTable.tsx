@@ -22,11 +22,6 @@ interface RegionChange {
   previousPrice: number;
 }
 
-interface RawData {
-  RegionName: string;
-  [key: string]: string | number;
-}
-
 const PriceChangeTable: React.FC<PriceChangeTableProps> = ({ type }) => {
   const [data, setData] = useState<RegionChange[]>([]);
 

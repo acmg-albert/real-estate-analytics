@@ -6,19 +6,12 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
   Paper,
   Autocomplete,
   TextField,
   Button
 } from '@mui/material';
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -26,7 +19,8 @@ import {
   Legend,
   ResponsiveContainer,
   Bar,
-  ComposedChart
+  ComposedChart,
+  Line
 } from 'recharts';
 
 interface Region {
