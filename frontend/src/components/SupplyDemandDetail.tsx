@@ -256,9 +256,7 @@ const SupplyDemandDetail: React.FC = () => {
           filterOptions={(options, { inputValue }) => {
             const inputValueLower = inputValue.toLowerCase();
             return options.filter(option => 
-              typeof option === 'string' 
-                ? option.toLowerCase().includes(inputValueLower)
-                : option.name.toLowerCase().includes(inputValueLower)
+              option.name.toLowerCase().includes(inputValueLower)
             );
           }}
         />

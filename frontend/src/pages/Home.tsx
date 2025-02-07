@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Box, Container, Typography, Grid } from '@mui/material';
 import MedianPriceChart from '../components/MedianPriceChart';
 import PriceChangeTable from '../components/PriceChangeTable';

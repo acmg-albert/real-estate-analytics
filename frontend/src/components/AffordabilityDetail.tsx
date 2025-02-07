@@ -13,8 +13,6 @@ import {
   Slider
 } from '@mui/material';
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -22,7 +20,8 @@ import {
   Legend as RechartsLegend,
   ResponsiveContainer,
   Bar,
-  ComposedChart
+  ComposedChart,
+  Line
 } from 'recharts';
 import { TooltipProps } from 'recharts';
 import {
