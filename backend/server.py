@@ -260,43 +260,56 @@ def calculate_metrics(df: pd.DataFrame, region_col: str) -> List[Dict]:
         return []
 
 def get_top_bottom(data: List[Dict], metric: str, n: int = 10) -> Tuple[List[Dict], List[Dict]]:
-    """获取指定指标的前N和后N个地区"""
+    """获取指标的前N和后N"""
     try:
-        # 根据指标名称获取相应的数据
-        if metric == 'active':
-            sorted_data = sorted(data, key=lambda x: x['changePercentage'], reverse=True)
-            top = [{'region': item['region'], 
-                   'current': item['currentActive'],
-                   'prePandemic': item['historicalActive'],
-                   'changePercentage': item['changePercentage']} for item in sorted_data[:n]]
-            bottom = [{'region': item['region'], 
-                      'current': item['currentActive'],
-                      'prePandemic': item['historicalActive'],
-                      'changePercentage': item['changePercentage']} for item in sorted_data[-n:]]
-        elif metric == 'pending':
-            sorted_data = sorted(data, key=lambda x: x['pendingChange'], reverse=True)
-            top = [{'region': item['region'], 
-                   'current': item['currentPending'],
-                   'prePandemic': item['historicalPending'],
-                   'changePercentage': item['pendingChange']} for item in sorted_data[:n]]
-            bottom = [{'region': item['region'], 
-                      'current': item['currentPending'],
-                      'prePandemic': item['historicalPending'],
-                      'changePercentage': item['pendingChange']} for item in sorted_data[-n:]]
-        else:  # ratio
-            sorted_data = sorted(data, key=lambda x: x['ratioChange'], reverse=True)
-            top = [{'region': item['region'], 
-                   'current': item['currentRatio'],
-                   'prePandemic': item['historicalRatio'],
-                   'changePercentage': item['ratioChange']} for item in sorted_data[:n]]
-            bottom = [{'region': item['region'], 
-                      'current': item['currentRatio'],
-                      'prePandemic': item['historicalRatio'],
-                      'changePercentage': item['ratioChange']} for item in sorted_data[-n:]]
+        if not data:
+            return [], []
+            
+        # 根据不同指标选择排序键
+        sort_key = {
+            'active': 'changePercentage',
+            'pending': 'pendingChange',
+            'ratio': 'ratioChange'
+        }.get(metric)
         
-        return top, bottom
+        if not sort_key:
+            print(f"未知的指标类型: {metric}")
+            return [], []
+            
+        # 按指标排序
+        sorted_data = sorted(data, key=lambda x: x[sort_key], reverse=True)
+        
+        # 获取前N和后N
+        top = sorted_data[:n]
+        bottom = sorted_data[-n:][::-1]  # 反转以保持从小到大顺序
+        
+        # 根据指标类型构造返回数据
+        if metric == 'active':
+            process = lambda x: {
+                'region': x['region'],
+                'current': x['currentActive'],
+                'prePandemic': x['historicalActive'],
+                'changePercentage': x['changePercentage']
+            }
+        elif metric == 'pending':
+            process = lambda x: {
+                'region': x['region'],
+                'current': x['currentPending'],
+                'prePandemic': x['historicalPending'],
+                'pendingChange': x['pendingChange']
+            }
+        else:  # ratio
+            process = lambda x: {
+                'region': x['region'],
+                'current': x['currentRatio'],
+                'prePandemic': x['historicalRatio'],
+                'ratioChange': x['ratioChange']
+            }
+            
+        return [process(x) for x in top], [process(x) for x in bottom]
+        
     except Exception as e:
-        print(f"获取排名时出错: {str(e)}")
+        print(f"获取前N和后N时出错: {str(e)}")
         return [], []
 
 @app.get("/api/market-balance")
