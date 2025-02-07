@@ -8,7 +8,9 @@ interface MarketData {
   region: string;
   current: number;
   prePandemic: number;
-  changePercentage: number;
+  changePercentage?: number;  // 对于active listings
+  pendingChange?: number;     // 对于pending listings
+  ratioChange?: number;       // 对于ratio
 }
 
 interface MarketBalanceResponse {
@@ -36,17 +38,19 @@ const SupplyDemandSummary: React.FC = () => {
     const fetchData = async () => {
       try {
         console.log('Starting to fetch market balance data...');
+        console.log('Using API URL:', API_URL);
         const response = await fetch(`${API_URL}/api/market-balance`);
         console.log('API response status:', response.status);
+        console.log('API response headers:', Object.fromEntries(response.headers.entries()));
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('API error:', errorText);
-          throw new Error(`HTTP error! status: ${response.status}`);
+          console.error('API error response:', errorText);
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
         
         const responseData = await response.json();
-        console.log('Received data:', responseData);
+        console.log('Successfully fetched market balance data');
         
         if (!responseData || typeof responseData !== 'object') {
           console.error('Invalid data format:', responseData);
@@ -113,7 +117,10 @@ const SupplyDemandSummary: React.FC = () => {
       flex: 1,
       minWidth: 150,
       renderCell: (params: GridRenderCellParams) => {
-        const value = params.value as number;
+        const row = params.row as MarketData;
+        const value = type === 'active' ? row.changePercentage 
+                    : type === 'pending' ? row.pendingChange 
+                    : row.ratioChange;
         if (value == null || isNaN(value)) return '';
         return (
           <div style={{ 
